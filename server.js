@@ -6,19 +6,20 @@ const http = require('http');
 const net = require('net');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const { writeConfig } = require('./setup.js');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const WSPATH = (process.env.WSPATH || '').replace(/^\/+/, '');
 const XRAY_PORT = 10001;
-
 if (!process.env.UUID || !WSPATH) {
   console.error('UUID and WSPATH env are required');
   process.exit(1);
 }
 
-writeConfig();
-
+// config.json is written at build time (node setup.js). The runtime image is
+// not writable by the app user, so only write it when it is missing.
+if (!fs.existsSync(path.join(__dirname, 'config.json'))) writeConfig();
 const xray = spawn(path.join(__dirname, 'xray'), ['-config', path.join(__dirname, 'config.json')], { stdio: ['ignore', 'inherit', 'inherit'] });
 xray.on('exit', (code) => { console.error('xray exited', code); process.exit(1); });
 
